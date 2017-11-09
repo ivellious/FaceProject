@@ -3,6 +3,8 @@ package com.michalpomiecko.faceproject;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -11,9 +13,16 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
+import com.google.android.gms.vision.face.Landmark;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,15 +31,15 @@ import java.util.Date;
 
 public class FaceProjectMainActivity extends AppCompatActivity {
 
-    static final int REQUEST_TAKE_PHOTO=101;
+    static final int REQUEST_TAKE_PHOTO = 101;
 
     private int CAMERA_PERMISSION = 1;
     private int READ_EXTERNAL_STORAGE_CODE = 2;
     private int WRITE_EXTERNAL_STORAGE_CODE = 3;
 
 
-
     private Button takeFacePhotoButton;
+    private ImageView mImageView;
 
     @Override
     protected void onResume() {
@@ -46,7 +55,7 @@ public class FaceProjectMainActivity extends AppCompatActivity {
                 != PackageManager.PERMISSION_GRANTED) {
 
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                   READ_EXTERNAL_STORAGE_CODE);
+                    READ_EXTERNAL_STORAGE_CODE);
         }
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -65,18 +74,20 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
             @Override
             public void uncaughtException(Thread paramThread, Throwable paramThrowable) {
-                Log.e("Alert","Lets See if it Works !!!", paramThrowable);
+                Log.e("Alert", "Lets See if it Works !!!", paramThrowable);
             }
         });
         setContentView(R.layout.activity_face_project_main);
         takeFacePhotoButton = (Button) findViewById(R.id.addFaceButton);
+        mImageView = (ImageView) findViewById(R.id.firstImageView);
+
 
         takeFacePhotoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
 
-               dispatchTakePictureIntent();
+                dispatchTakePictureIntent();
             }
         });
     }
@@ -91,7 +102,7 @@ public class FaceProjectMainActivity extends AppCompatActivity {
                 photoFile = createImageFile();
             } catch (IOException ex) {
                 // Error occurred while creating the File
-                Log.e("Alert","Lets See if it Works !!!", ex);
+                Log.e("Alert", "Lets See if it Works !!!", ex);
 
             }
             // Continue only if the File was successfully created
@@ -127,8 +138,29 @@ public class FaceProjectMainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
             Toast.makeText(this, "OK", Toast.LENGTH_SHORT).show();
-           galleryAddPic();
+            galleryAddPic();
+            displayBitMap();
         }
+    }
+
+    private void displayBitMap() {
+        Bitmap bMap = BitmapFactory.decodeFile(mCurrentPhotoPath);
+        FaceDetector detector = new FaceDetector.Builder(this)
+                .setTrackingEnabled(false)
+                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+                .build();
+        Frame frame = new Frame.Builder().setBitmap(bMap).build();
+
+        SparseArray<Face> faces = detector.detect(frame);
+        for (int i = 0; i < faces.size(); ++i) {
+            Face face = faces.valueAt(i);
+            for (Landmark landmark : face.getLandmarks()) {
+                int cx = (int) (landmark.getPosition().x);
+                int cy = (int) (landmark.getPosition().y);
+                Log.e("Face" + i, "Coordinate: x: " + cx + "  y:" + cy);
+            }
+        }
+        mImageView.setImageBitmap(bMap);
     }
 
     private void galleryAddPic() {
