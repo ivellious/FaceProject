@@ -14,14 +14,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".FaceProjectMainActivity">
+        <activity android:name=".FaceProjectMainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".AddReferenceFaceActivity">
+        <activity android:name=".AddReferenceFaceActivity"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity android:name=".DisplayUserFaceActivity"
+            android:screenOrientation="portrait">
 
         </activity>
 

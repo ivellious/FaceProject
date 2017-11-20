@@ -5,6 +5,9 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -27,7 +30,9 @@ import com.google.android.gms.vision.face.Landmark;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class FaceProjectMainActivity extends AppCompatActivity {
 
@@ -101,8 +106,7 @@ public class FaceProjectMainActivity extends AppCompatActivity {
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
-                // Error occurred while creating the File
-                Log.e("Alert", "Lets See if it Works !!!", ex);
+                Log.e(FaceProjectMainActivity.class.getSimpleName(), "IO Error", ex);
 
             }
             // Continue only if the File was successfully created
@@ -144,23 +148,74 @@ public class FaceProjectMainActivity extends AppCompatActivity {
     }
 
     private void displayBitMap() {
-        Bitmap bMap = BitmapFactory.decodeFile(mCurrentPhotoPath);
-        FaceDetector detector = new FaceDetector.Builder(this)
-                .setTrackingEnabled(false)
-                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
-                .build();
-        Frame frame = new Frame.Builder().setBitmap(bMap).build();
 
-        SparseArray<Face> faces = detector.detect(frame);
-        for (int i = 0; i < faces.size(); ++i) {
-            Face face = faces.valueAt(i);
-            for (Landmark landmark : face.getLandmarks()) {
-                int cx = (int) (landmark.getPosition().x);
-                int cy = (int) (landmark.getPosition().y);
-                Log.e("Face" + i, "Coordinate: x: " + cx + "  y:" + cy);
+
+           Bitmap bMap = BitmapFactory.decodeFile(mCurrentPhotoPath);
+            //   Bitmap bMapCopy = bMap.copy(Bitmap.Config.ARGB_8888, true);
+
+            FaceDetector detector = new FaceDetector.Builder(this)
+                    .setTrackingEnabled(false)
+                    .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+                    .build();
+            Frame frame = new Frame.Builder().setBitmap(bMap).build();
+//        Canvas canvas = new Canvas(bMapCopy);
+//        Paint paint = new Paint();
+//        paint.setColor(Color.BLUE);
+            List<DataPoint> pointsList = new ArrayList<>();
+            SparseArray<Face> faces = detector.detect(frame);
+            for (int i = 0; i < faces.size(); ++i) {
+                Face face = faces.valueAt(i);
+                for (Landmark landmark : face.getLandmarks()) {
+                    int cx = (int) (landmark.getPosition().x);
+                    int cy = (int) (landmark.getPosition().y);
+//                canvas.drawCircle(cx,cy,10, paint);
+                    pointsList.add(new DataPoint(cx,cy));
+
+                    Log.e("Landmark from face: " + i, ", Coordinate: x: " + cx + "  y:" + cy);
+                }
             }
+
+           Bitmap bitmap = bMap.copy(Bitmap.Config.ARGB_8888, true);
+            drawCircles(pointsList, bitmap);
+
+            mImageView.setImageBitmap(bitmap);
+
+
+//        paint.setAntiAlias(true);
+    }
+
+    private void drawCircles(List<DataPoint> dataPoints, Bitmap image) {
+                Canvas canvas = new Canvas(image);
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setColor(Color.RED);
+        for (DataPoint dataP: dataPoints) {
+            canvas.drawCircle(dataP.getX(),dataP.getY(), 20, paint);
         }
-        mImageView.setImageBitmap(bMap);
+    }
+
+    class DataPoint {
+        int x,y;
+        public DataPoint(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        public int getX() {
+            return x;
+        }
+
+        public void setX(int x) {
+            this.x = x;
+        }
+
+        public int getY() {
+            return y;
+        }
+
+        public void setY(int y) {
+            this.y = y;
+        }
     }
 
     private void galleryAddPic() {
