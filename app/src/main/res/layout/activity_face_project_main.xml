@@ -11,32 +11,69 @@
 
 
     <TextView
+        android:id="@+id/addFaceTxt"
         android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add reference face"/>
+        android:text="Dodaj użytkownika"/>
 
     <Button
         android:id="@+id/addFaceButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add Reference Face"/>
+        android:text="Dodaj użytkownika"/>
 
     <TextView
+        android:id="@+id/verifyFaceTxt"
         android:gravity="center"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Verify face"/>
+        android:text="Weryfikuj użytkownika"/>
     <Button
         android:id="@+id/verifyFaceButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Verify face"/>
+        android:text="Weryfikuj użytkownika"/>
 
     <ImageView
+        android:layout_gravity="center"
+        android:visibility="gone"
         android:id="@+id/firstImageView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_width="100sp"
+        android:layout_height="150sp"/>
 
+    <TextView
+        android:id="@+id/fnameView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Imię:"
+        android:visibility="gone"/>
+
+    <EditText
+        android:id="@+id/fnameEdit"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/lnameView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Nazwisko:"
+        android:visibility="gone"/>
+
+    <EditText
+        android:id="@+id/lnameEdit"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/addUserBtn"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Dodaj użytkownika"/>
 
 </LinearLayout>
