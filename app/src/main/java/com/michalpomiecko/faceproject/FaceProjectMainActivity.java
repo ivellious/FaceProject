@@ -5,16 +5,12 @@ import android.arch.persistence.room.Room;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.SparseArray;
@@ -31,17 +27,12 @@ import com.google.android.gms.vision.face.FaceDetector;
 import com.google.android.gms.vision.face.Landmark;
 
 import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.io.File;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
-public class FaceProjectMainActivity extends AppCompatActivity {
+public class FaceProjectMainActivity extends AppCompatActivity implements View.OnClickListener {
 
     static final int REQUEST_TAKE_PHOTO = 101;
 
@@ -50,7 +41,6 @@ public class FaceProjectMainActivity extends AppCompatActivity {
     private int WRITE_EXTERNAL_STORAGE_CODE = 3;
     private final static int ADD_FACE = 1;
     private final static int VERIFY_FACE = 2;
-
 
     private Button addFaceButton;
     private TextView addFaceTxt;
@@ -75,21 +65,6 @@ public class FaceProjectMainActivity extends AppCompatActivity {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION);
         }
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                    READ_EXTERNAL_STORAGE_CODE);
-        }
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    WRITE_EXTERNAL_STORAGE_CODE);
-        }
-
-
     }
 
     @Override
@@ -114,28 +89,31 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         lnameEdit = (EditText) findViewById(R.id.lnameEdit);
         addUserBtn = (Button) findViewById(R.id.addUserBtn);
 
-        addFaceButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                addFace();
-            }
-        });
-        addUserBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                addUser();
-            }
-        });
-        verifyFaceButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                verifyFace();
-            }
-        });
+        addFaceButton.setOnClickListener(this);
+        addUserBtn.setOnClickListener(this);
+        verifyFaceButton.setOnClickListener(this);
 
         this.db = Room.databaseBuilder(getApplicationContext(),
                 AppDatabase.class, "userDB").allowMainThreadQueries().build();
 
+    }
+
+    @Override
+    public void onClick(View v) {
+        int id = v.getId();
+        switch (id) {
+            case R.id.addFaceButton:
+                addFace();
+                break;
+            case R.id.addUserBtn:
+                addUser();
+                break;
+            case R.id.verifyFaceButton:
+                verifyFace();
+                break;
+            default:
+                break;
+        }
     }
 
     private void addFace() {
@@ -150,8 +128,7 @@ public class FaceProjectMainActivity extends AppCompatActivity {
 
     private String ratiosToString(List<Double> ratiosList) {
         Double[] ratios = ratiosList.toArray(new Double[ratiosList.size()]);
-        String vector = Arrays.toString(ratios);
-        return vector;
+        return Arrays.toString(ratios);
     }
 
     private void addUser() {
@@ -218,59 +195,30 @@ public class FaceProjectMainActivity extends AppCompatActivity {
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            // Create the File where the photo should go
-            File photoFile = null;
-            try {
-                photoFile = createImageFile();
-            } catch (IOException ex) {
-                Log.e(FaceProjectMainActivity.class.getSimpleName(), "IO Error", ex);
-
-            }
-            // Continue only if the File was successfully created
-            if (photoFile != null) {
-                Uri photoURI = FileProvider.getUriForFile(this,
-                        "com.michalpomiecko.faceproject.fileprovider",
-                        photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-            }
+            startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
         }
-    }
-
-    String mCurrentPhotoPath;
-
-    private File createImageFile() throws IOException {
-        // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
-
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.getAbsolutePath();
-        return image;
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
-            Toast.makeText(this, "OK", Toast.LENGTH_SHORT).show();
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
+
+            if (!verifyLandmarksPresence(imageBitmap)) {
+                return;
+            }
+
+            Toast.makeText(this, "Zdjęcie wykonano poprawnie", Toast.LENGTH_SHORT).show();
+
             switch (photoMode) {
                 case ADD_FACE:
-                    galleryAddPic();
-                    displayBitMap();
+                    displayBitMap(imageBitmap);
                     hideMainMenu();
                     showAddMenu();
                     break;
                 case VERIFY_FACE:
-                    galleryAddPic();
-                    displayBitMap();
                     verifyUser();
                     break;
                 default:
@@ -280,13 +228,57 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         }
     }
 
+    private void displayBitMap(Bitmap imageBitmap) {
+
+        Bitmap bitmap = imageBitmap.copy(Bitmap.Config.ARGB_8888, true);
+        drawCircles(bitmap);
+
+        mImageView.setImageBitmap(bitmap);
+    }
+
+    private boolean verifyLandmarksPresence(Bitmap bMap) {
+        FaceDetector detector = new FaceDetector.Builder(this)
+                .setTrackingEnabled(false)
+                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+                .build();
+        Frame frame = new Frame.Builder().setBitmap(bMap).build();
+
+        pointsList = new ArrayList<>();
+        SparseArray<Face> faces = detector.detect(frame);
+        if (faces.size() == 0) {
+            Toast.makeText(this, "Nie wykryto twarzy! Spróbuj ponownie", Toast.LENGTH_SHORT).show();
+            Log.e("Error:", "No face detected!");
+            return false;
+        }
+        if (faces.size() > 1) {
+            Toast.makeText(this, "Więcej niż jedna osoba na zdjęciu! Spróbuj ponownie.", Toast.LENGTH_SHORT).show();
+            Log.e("Error:", "More than one face detected!");
+            return false;
+        }
+        Face face = faces.valueAt(0);
+        List<Landmark> landmarks = face.getLandmarks();
+        if (landmarks.size() < 8) {
+            Toast.makeText(this, "Za mało punktów charakterystycznych! Spróbuj ponownie.", Toast.LENGTH_SHORT).show();
+            Log.e("Error:", "Not enough points detected!");
+            return false;
+        }
+
+        for (Landmark landmark : landmarks) {
+            int x = (int) landmark.getPosition().x;
+            int y = (int) landmark.getPosition().y;
+            pointsList.add(new DataPoint(x, y));
+        }
+
+        detector.release();
+        return true;
+    }
+
     private double squareError(List<Double> ratios, User user) {
         try {
-            String vector = user.getFeatureVector();
-            JSONArray uRatios = new JSONArray(vector);
+            JSONArray uRatios = new JSONArray(user.getFeatureVector());
             Double se = 0.0;
             Double sum = 0.0;
-            for(int i = 0; i < ratios.size(); i++) {
+            for (int i = 0; i < ratios.size(); i++) {
                 sum += ratios.get(i);
                 se += Math.pow(ratios.get(i) - uRatios.getDouble(i), 2);
             }
@@ -305,9 +297,9 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         List<Double> ratios = calculateRatios(pointsList);
         User bestFitUser = users.get(0);
         Double bestFit = squareError(ratios, bestFitUser);
-        for(User user: users.subList(1, users.size())) {
+        for (User user : users.subList(1, users.size())) {
             Double se = squareError(ratios, user);
-            if(se < bestFit){
+            if (se < bestFit) {
                 bestFit = se;
                 bestFitUser = user;
             }
@@ -329,18 +321,18 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         List<Double> distances = new ArrayList<Double>();
         List<Double> ratios = new ArrayList<Double>();
         // Distances
-        for(int i = 0; i < dataPoints.size(); i++) {
-            for(int j = i + 1; j < dataPoints.size(); j++) {
-                if(i != j) {
+        for (int i = 0; i < dataPoints.size(); i++) {
+            for (int j = i + 1; j < dataPoints.size(); j++) {
+                if (i != j) {
                     Double distance = pointsDistance(dataPoints.get(i), dataPoints.get(j));
                     distances.add(distance);
                 }
             }
         }
         // Ratios
-        for(int i = 0; i < distances.size(); i++) {
-            for(int j = i + 1; j < distances.size(); j++) {
-                if(i != j) {
+        for (int i = 0; i < distances.size(); i++) {
+            for (int j = i + 1; j < distances.size(); j++) {
+                if (i != j) {
                     Double ratio = distances.get(i) / distances.get(j);
                     ratios.add(ratio);
                 }
@@ -349,108 +341,30 @@ public class FaceProjectMainActivity extends AppCompatActivity {
         return ratios;
     }
 
-    private void displayBitMap() {
-
-
-            Bitmap bMap = BitmapFactory.decodeFile(mCurrentPhotoPath);
-            //   Bitmap bMapCopy = bMap.copy(Bitmap.Config.ARGB_8888, true);
-
-            FaceDetector detector = new FaceDetector.Builder(this)
-                    .setTrackingEnabled(false)
-                    .setLandmarkType(FaceDetector.ALL_LANDMARKS)
-                    .build();
-            Frame frame = new Frame.Builder().setBitmap(bMap).build();
-//        Canvas canvas = new Canvas(bMapCopy);
-//        Paint paint = new Paint();
-//        paint.setColor(Color.BLUE);
-            pointsList = new ArrayList<>();
-            SparseArray<Face> faces = detector.detect(frame);
-            if (faces.size() == 0) {
-                Toast.makeText(this, "Nie wykryto twarzy!", Toast.LENGTH_SHORT).show();
-                Log.e("Error:", "No face detected!");
-                mImageView.setImageBitmap(bMap);
-                return;
-            }
-            if (faces.size() > 1) {
-                Toast.makeText(this, "Więcej niż jedna osoba na zdjęciu!", Toast.LENGTH_SHORT).show();
-                Log.e("Error:", "More than one face detected!");
-                mImageView.setImageBitmap(bMap);
-                return;
-            }
-            Face face = faces.valueAt(0);
-            List<Landmark> landmarks = face.getLandmarks();
-            if(landmarks.size() < 8) {
-                Toast.makeText(this, "Za mało punktów charakterystycznych!", Toast.LENGTH_SHORT).show();
-                Log.e("Error:", "Not enough points detected!");
-                mImageView.setImageBitmap(bMap);
-                return;
-            }
-            for(Landmark landmark : landmarks) {
-                int x = (int) landmark.getPosition().x;
-                int y = (int) landmark.getPosition().y;
-                pointsList.add(new DataPoint(x, y));
-            }
-//            for (int i = 0; i < faces.size(); ++i) {
-//                Face face = faces.valueAt(i);
-//                for (Landmark landmark : face.getLandmarks()) {
-//                    int cx = (int) (landmark.getPosition().x);
-//                    int cy = (int) (landmark.getPosition().y);
-////                canvas.drawCircle(cx,cy,10, paint);
-//                    pointsList.add(new DataPoint(cx,cy));
-//
-//                    Log.e("Landmark from face: " + i, ", Coordinate: x: " + cx + "  y:" + cy);
-//                }
-//            }
-
-            Bitmap bitmap = bMap.copy(Bitmap.Config.ARGB_8888, true);
-            drawCircles(pointsList, bitmap);
-
-            mImageView.setImageBitmap(bitmap);
-
-//        paint.setAntiAlias(true);
-    }
-
-    private void drawCircles(List<DataPoint> dataPoints, Bitmap image) {
-                Canvas canvas = new Canvas(image);
+    private void drawCircles(Bitmap image) {
+        Canvas canvas = new Canvas(image);
         Paint paint = new Paint();
         paint.setAntiAlias(true);
         paint.setColor(Color.RED);
-        for (DataPoint dataP: dataPoints) {
-            canvas.drawCircle(dataP.getX(),dataP.getY(), 20, paint);
+        for (DataPoint dataP : pointsList) {
+            canvas.drawCircle(dataP.getX(), dataP.getY(), 2, paint);
         }
     }
 
     class DataPoint {
-        int x,y;
-        public DataPoint(int x, int y) {
+        int x, y;
+
+        private DataPoint(int x, int y) {
             this.x = x;
             this.y = y;
         }
 
-        public int getX() {
+        private int getX() {
             return x;
         }
 
-        public void setX(int x) {
-            this.x = x;
-        }
-
-        public int getY() {
+        private int getY() {
             return y;
         }
-
-        public void setY(int y) {
-            this.y = y;
-        }
     }
-
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(mCurrentPhotoPath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
-    }
-
-
 }

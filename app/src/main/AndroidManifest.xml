@@ -22,23 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".AddReferenceFaceActivity"
-            android:screenOrientation="portrait">
-        </activity>
-        <activity android:name=".DisplayUserFaceActivity"
-            android:screenOrientation="portrait">
 
-        </activity>
-
-        <provider
-            android:name="android.support.v4.content.FileProvider"
-            android:authorities="com.michalpomiecko.faceproject.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
-        </provider>
     </application>
 
 
